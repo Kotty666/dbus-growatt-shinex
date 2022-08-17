@@ -25,6 +25,7 @@ class DbusGrowattShineXService:
     config = self._getConfig()
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
+    phase = config['DEFAULT']['Phase']
     
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
@@ -140,15 +141,15 @@ class DbusGrowattShineXService:
       
        
        #send data to DBus
-       self._dbusservice['/Ac/L1/Voltage'] = meter_data['AcVoltage']
+       self._dbusservice['/Ac/' + phase + '/Voltage'] = meter_data['AcVoltage']
  
        current = meter_data['AcPower'] / meter_data['AcVoltage']
-       self._dbusservice['/Ac/L1/Current'] = current
+       self._dbusservice['/Ac/' + phase + '/Current'] = current
        
-       self._dbusservice['/Ac/L1/Power'] = meter_data['AcPower']
-       self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['EnergyTotal']
+       self._dbusservice['/Ac/' + phase + '/Power'] = meter_data['AcPower']
+       self._dbusservice['/Ac/' + phase + '/Energy/Forward'] = meter_data['EnergyTotal']
         
-       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/L1/Energy/Forward']
+       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + phase + '/Energy/Forward']
           
        #logging
        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
@@ -208,10 +209,10 @@ def main():
           '/Ac/Current': {'initial': 0, 'textformat': _a},
           '/Ac/Voltage': {'initial': 0, 'textformat': _v},
           
-          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/' + phase + '/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/' + phase + '/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/' + phase + '/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/' + phase + '/Energy/Forward': {'initial': 0, 'textformat': _kwh},
         })
      
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
