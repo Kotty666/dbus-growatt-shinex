@@ -3,7 +3,7 @@ Integrate Growatt-ShineWifi into Victron Energies Venus OS
  - https://github.com/otti/Growatt_ShineWiFi-S
 
 ## Purpose
-With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Shelly EM to the VenusOS and GX devices from Victron.
+With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Growatt Inverter to the VenusOS and GX devices from Victron.
 Idea is inspired on @fabian-lauer & @vikt0rm projects linked below.
 
 
@@ -32,8 +32,7 @@ As mentioned above the script is inspired by @fabian-lauer dbus-shelly-3em-smart
 So what is the script doing:
 - Running as a service
 - connecting to DBus of the Venus OS `com.victronenergy.pvinverter.http_{DeviceInstanceID_from_config}`
-- After successful DBus connection Shelly 1PM is accessed via REST-API - simply the /status is called and a JSON is returned with all details
-  A sample JSON file from Shelly 1PM can be found [here](docs/shelly1pm-status-sample.json)
+- After successful DBus connection the Growatt Inverter WifiDongle is accessed via REST-API - simply the /status is called and a JSON is returned with all details
 - Paths are added to the DBus with default value 0 - including some settings like name, etc
 - After that a "loop" is started which pulls data every 750ms from the REST-API and updates the values in the DBus
 
@@ -48,22 +47,22 @@ Thats it 😄
 
 ## Install & Configuration
 ### Get the code
-Just grap a copy of the main branche and copy them to a folder under `/data/` e.g. `/data/dbus-shelly-1pm-pvinverter`.
+Just grap a copy of the main branche and copy them to a folder under `/data/` e.g. `/data/dbus-growatt-shinex`.
 After that call the install.sh script.
 
 The following script should do everything for you:
 ```
-wget https://github.com/vincegod/dbus-shelly-em-smartmeter/archive/refs/heads/main.zip
-unzip main.zip "dbus-shelly-em-smartmeter-main/*" -d /data
-mv /data/dbus-shelly-em-smartmeter-main /data/dbus-shelly-em-smartmeter
-chmod a+x /data/dbus-shelly-em-smartmeter/install.sh
-/data/dbus-shelly-em-smartmeter/install.sh
+wget https://github.com/Kotty666/dbus-growatt-shinex/archive/refs/heads/main.zip
+unzip main.zip "Kotty666/dbus-growatt-shinex-main/*" -d /data
+mv /data/dbus-growatt-shinex-main /data/dbus-growatt-shinex
+chmod a+x /data/dbus-growatt-shinex/install.sh
+/data/dbus-growatt-shinex/install.sh
 rm main.zip
 ```
 ⚠️ Check configuration after that - because service is already installed an running and with wrong connection data (host, username, pwd) you will spam the log-file
 
 ### Change config.ini
-Within the project there is a file `/data/dbus-shelly-em-smartmeter/config.ini` - just change the values - most important is the deviceinstance, custom name and phase under "DEFAULT" and host, username and password in section "ONPREMISE". More details below:
+Within the project there is a file `/data/dbus-growatt-shinex/config.ini` - just change the values - most important is the deviceinstance, custom name and phase under "DEFAULT" and host, username and password in section "ONPREMISE". More details below:
 
 | Section  | Config vlaue | Explanation |
 | ------------- | ------------- | ------------- |
@@ -82,8 +81,6 @@ Within the project there is a file `/data/dbus-shelly-em-smartmeter/config.ini` 
 - https://github.com/victronenergy/venus/wiki/dbus#pv-inverters   DBus paths for Victron namespace
 - https://github.com/victronenergy/venus/wiki/dbus-api   DBus API from Victron
 - https://www.victronenergy.com/live/ccgx:root_access   How to get root access on GX device/Venus OS
-- https://shelly-api-docs.shelly.cloud/gen1/#shelly1-shelly1pm Shelly API documentation
 
 ## Discussions on the web
-This module/repository has been posted on the following threads:
-- https://community.victronenergy.com/questions/127339/shelly-1pm-as-pv-inverter-in-venusos.html
+
