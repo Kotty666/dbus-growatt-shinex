@@ -121,7 +121,8 @@ class DbusGrowattShineXService:
         raise ValueError("Converting response to JSON failed")
     
     if meter_data['Status'] == "Disconnected":
-        raise ValueError("Stick not connected to Inverter")
+        logging.info("Stick not connected to Inverter")
+        meter_data='{"Status": "Normal","DcVoltage": 0,"AcFreq": 50.000,"AcVoltage": 239.5,"AcPower": 0,"EnergyToday": 0,"OperatingTime": 0,"Temperature": 0,"AccumulatedEnergy": 0, "Cnt": 0}'.json()
     
     return meter_data
  
@@ -209,10 +210,10 @@ def main():
           '/Ac/Current': {'initial': 0, 'textformat': _a},
           '/Ac/Voltage': {'initial': 0, 'textformat': _v},
           
-          '/Ac/' + phase + '/Voltage': {'initial': 0, 'textformat': _v},
-          '/Ac/' + phase + '/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/' + phase + '/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/' + phase + '/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
         })
      
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
