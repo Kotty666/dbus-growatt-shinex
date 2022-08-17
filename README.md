@@ -53,7 +53,7 @@ After that call the install.sh script.
 The following script should do everything for you:
 ```
 wget https://github.com/Kotty666/dbus-growatt-shinex/archive/refs/heads/main.zip
-unzip main.zip "Kotty666/dbus-growatt-shinex-main/*" -d /data
+unzip main.zip "dbus-growatt-shinex-main/*" -d /data
 mv /data/dbus-growatt-shinex-main /data/dbus-growatt-shinex
 chmod a+x /data/dbus-growatt-shinex/install.sh
 /data/dbus-growatt-shinex/install.sh
