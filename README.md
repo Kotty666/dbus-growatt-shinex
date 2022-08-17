@@ -1,5 +1,6 @@
-# dbus-shelly-em-smartmeter
-Integrate Shelly EM into Victron Energies Venus OS
+# dbus-growatt-shinex
+Integrate Growatt-ShineWifi into Victron Energies Venus OS
+ - https://github.com/otti/Growatt_ShineWiFi-S
 
 ## Purpose
 With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Shelly EM to the VenusOS and GX devices from Victron.
@@ -11,7 +12,6 @@ Idea is inspired on @fabian-lauer & @vikt0rm projects linked below.
 This is my first project with the Victron Venus OS on GitHub, so I took some ideas and approaches from the following projects - many thanks for sharing the knowledge:
 - https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter
 - https://github.com/vikt0rm/dbus-shelly-1pm-pvinverter
-- https://shelly-api-docs.shelly.cloud/gen1/#shelly-em
 - https://github.com/victronenergy/venus/wiki/dbus#grid-and-genset-meter
 
 
@@ -20,17 +20,10 @@ This is my first project with the Victron Venus OS on GitHub, so I took some ide
 
 ## How it works
 ### My setup
-- 3-Phase installation
-- Shelly 1PM with latest firmware (20220209-094317/v1.11.8-g8c7bb8d)
-  - Measuring AC output of SUN-2000 GTIL on phase L3
-  - Connected to Wifi netowrk "A" with a known IP  
-- Shelly 1PM with latest firmware (20220209-094317/v1.11.8-g8c7bb8d)
-  - Measuring AC output of Envertech EVT-500 and Hoymiles HM-800 on phase L3
-  - Connected to Wifi netowrk "A" with a known IP  
-- Shelly 3EM used as a grid meter
-  - Connected over https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter
-  - Connected to Wifi netowrk "A" with a known IP  
-- Venus OS on Raspberry PI 4 4GB version 1.1 - Firmware v2.84
+- Growatt ShineWifi-X
+  - Measuring AC output of Growatt MIC 600TL-X on phase L1
+  - Connected to Wifi netowrk "A" with a known IP
+- Venus OS on Raspberry PI 3B - Firmware v2.89
   - No other devices from Victron connected
   - Connected to Wifi netowrk "A"
 
@@ -41,9 +34,8 @@ So what is the script doing:
 - connecting to DBus of the Venus OS `com.victronenergy.pvinverter.http_{DeviceInstanceID_from_config}`
 - After successful DBus connection Shelly 1PM is accessed via REST-API - simply the /status is called and a JSON is returned with all details
   A sample JSON file from Shelly 1PM can be found [here](docs/shelly1pm-status-sample.json)
-- Serial/MAC is taken from the response as device serial
 - Paths are added to the DBus with default value 0 - including some settings like name, etc
-- After that a "loop" is started which pulls Shelly 1PM data every 750ms from the REST-API and updates the values in the DBus
+- After that a "loop" is started which pulls data every 750ms from the REST-API and updates the values in the DBus
 
 Thats it 😄
 
