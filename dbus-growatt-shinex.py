@@ -6,6 +6,7 @@ import logging
 import sys
 import os
 import sys
+import json
 if sys.version_info.major == 2:
     import gobject
 else:
@@ -18,6 +19,7 @@ import configparser # for config/ini file
 # our own packages from victron
 sys.path.insert(1, os.path.join(os.path.dirname(__file__), '/opt/victronenergy/dbus-systemcalc-py/ext/velib_python'))
 from vedbus import VeDbusService
+
 
 class DbusGrowattShineXService:
   def __init__(self, servicename, paths, productname='Growatt ShineX', connection='Growatt ShineX HTTP Json Connection'):
@@ -48,8 +50,8 @@ class DbusGrowattShineXService:
     self._dbusservice.add_path('/Connected', 1)
     self._dbusservice.add_path('/Role', 'pvinverter')
     self._dbusservice.add_path('/Position', 0) # normaly only needed for pvinverter
-    #self._dbusservice.add_path('/Serial', self._getShineXSerial())
-    self._dbusservice.add_path('/Serial', '0815')
+    self._dbusservice.add_path('/Serial', self._getShineXSerial())
+    #self._dbusservice.add_path('/Serial', '0815')
     self._dbusservice.add_path('/UpdateIndex', 0)
 
     # add path values to dbus
@@ -69,10 +71,10 @@ class DbusGrowattShineXService:
   def _getShineXSerial(self):
     meter_data = self._getShineXData()
 
-    if not meter_data['mac']:
+    if not meter_data['Mac']:
         raise ValueError("Response does not contain 'mac' attribute")
 
-    serial = meter_data['mac']
+    serial = meter_data['Mac']
     return serial
 
 
@@ -121,7 +123,8 @@ class DbusGrowattShineXService:
 
     if meter_data['Status'] == "Disconnected":
         logging.info("Stick not connected to Inverter")
-        meter_data='{"Status": "Normal","DcVoltage": 0,"AcFreq": 50.000,"AcVoltage": 239.5,"AcPower": 0,"EnergyToday": 0,"OperatingTime": 0,"Temperature": 0,"AccumulatedEnergy": 0, "Cnt": 0}'.json()
+        #meter_data=json.dumps('{"Status": "Normal","DcVoltage": 0,"AcFreq": 50.000,"AcVoltage": 239.5,"AcPower": 0,"EnergyToday": 0,"OperatingTime": 0,"Temperature": 0,"AccumulatedEnergy": 0, "Cnt": 0}')
+        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
 
     return meter_data
 
@@ -135,13 +138,15 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
+
+       config = self._getConfig()
+       phase = config['DEFAULT']['Phase']
        #get data from Shine X
        meter_data = self._getShineXData()
 
-
-
+       print(meter_data)
        #send data to DBus
-       self._dbusservice['/Ac/' + phase + '/Voltage'] = meter_data['AcVoltage']
+       self._dbusservice['/Ac/' + phase  + '/Voltage'] = meter_data['AcVoltage']
 
        current = meter_data['AcPower'] / meter_data['AcVoltage']
        self._dbusservice['/Ac/' + phase + '/Current'] = current
@@ -193,6 +198,10 @@ def main():
       # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
       DBusGMainLoop(set_as_default=True)
 
+      config = configparser.ConfigParser()
+      config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
+      phase = config['DEFAULT']['Phase']
+
       #formatting
       _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
       _a = lambda p, v: (str(round(v, 1)) + 'A')
@@ -201,18 +210,15 @@ def main():
 
       #start our main-service
       pvac_output = DbusGrowattShineXService(
-        servicename='com.victronenergy.grid',
+        servicename='com.victronenergy.pvinverter',
         paths={
-          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # energy bought from the grid
+          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # Total produced energy over all phases
           '/Ac/Power': {'initial': 0, 'textformat': _w},
 
-          '/Ac/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/Voltage': {'initial': 0, 'textformat': _v},
-
-          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/' + phase + '/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/' + phase + '/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/' + phase + '/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/' + phase + '/Energy/Forward': {'initial': 0, 'textformat': _kwh},
         })
 
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')

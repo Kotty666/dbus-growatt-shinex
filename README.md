@@ -12,7 +12,7 @@ Idea is inspired on @fabian-lauer & @vikt0rm projects linked below.
 This is my first project with the Victron Venus OS on GitHub, so I took some ideas and approaches from the following projects - many thanks for sharing the knowledge:
 - https://github.com/fabian-lauer/dbus-shelly-3em-smartmeter
 - https://github.com/vikt0rm/dbus-shelly-1pm-pvinverter
-- https://github.com/victronenergy/venus/wiki/dbus#grid-and-genset-meter
+- https://github.com/victronenergy/venus/wiki/dbus#pv-inverters
 
 
 
