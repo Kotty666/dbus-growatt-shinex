@@ -155,6 +155,7 @@ class DbusGrowattShineXService:
        self._dbusservice['/Ac/' + phase + '/Energy/Forward'] = meter_data['EnergyTotal']
 
        self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + phase + '/Energy/Forward']
+       self._dbusservice['/Ac/Power'] = meter_data['AcPower']
 
        #logging
        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))

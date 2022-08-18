@@ -39,10 +39,10 @@ So what is the script doing:
 Thats it 😄
 
 ### Pictures
-![Tile Overview](img/venus-os-tile-overview.PNG)
-![Remote Console - Overview](img/venus-os-remote-console-overview.PNG) 
-![SmartMeter - Values](img/venus-os-shelly1pm-pvinverter.PNG)
-![SmartMeter - Device Details](img/venus-os-shelly1pm-pvinverter-devicedetails.PNG)
+![Tile Overview](img/OverView.JPG)
+![Device List - Overview](img/DeviceList.JPG) 
+![Growatt - Values](img/Growatt_Detail.JPG)
+![Growatt - Device Details](img/Device_Detail.JPG)
 
 
 ## Install & Configuration
