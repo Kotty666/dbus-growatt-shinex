@@ -188,7 +188,7 @@ class DbusGrowattShineXService:
 
 def main():
   #configure logging
-  log_rotate_handler = logging.handlers.RotatingFileHandler(
+  log_rotate_handler = logging.RotatingFileHandler(
     maxBytes=5*1024*1024*10,
     backupCount=2,
     encoding=None,
