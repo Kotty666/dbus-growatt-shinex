@@ -113,17 +113,21 @@ class DbusGrowattShineXService:
 
     # check for response
     if not meter_r:
-        raise ConnectionError("No response from Shine X - %s" % (URL))
+        logging.info("No response from Shine X - %s" % (URL))
+        time.sleep(20)
+        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
+
 
     meter_data = meter_r.json()
 
     # check for Json
     if not meter_data:
-        raise ValueError("Converting response to JSON failed")
+        logging.info("Converting response to JSON failed")
+        time.sleep(20)
+        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
 
     if meter_data['Status'] == "Disconnected":
         logging.info("Stick not connected to Inverter")
-        #meter_data=json.dumps('{"Status": "Normal","DcVoltage": 0,"AcFreq": 50.000,"AcVoltage": 239.5,"AcPower": 0,"EnergyToday": 0,"OperatingTime": 0,"Temperature": 0,"AccumulatedEnergy": 0, "Cnt": 0}')
         meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
 
     return meter_data
@@ -184,12 +188,19 @@ class DbusGrowattShineXService:
 
 def main():
   #configure logging
+  log_rotate_handler = logging.handlers.RotatingFileHandler(
+    maxBytes=5*1024*1024*10,
+    backupCount=2,
+    encoding=None,
+    delay=0
+  )
   logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S',
                             level=logging.INFO,
                             handlers=[
                                 logging.FileHandler("%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))),
-                                logging.StreamHandler()
+                                logging.StreamHandler(),
+                                log_rotate_handler
                             ])
 
   try:
