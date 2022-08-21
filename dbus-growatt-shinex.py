@@ -3,6 +3,7 @@
 # import normal packages
 import platform
 import logging
+import logging.handlers
 import sys
 import os
 import sys
@@ -63,7 +64,7 @@ class DbusGrowattShineXService:
     self._lastUpdate = 0
 
     # add _update function 'timer'
-    gobject.timeout_add(250, self._update) # pause 250ms before the next request
+    gobject.timeout_add(1000, self._update) # pause 1000ms before the next request
 
     # add _signOfLife 'timer' to get feedback in log every 5minutes
     gobject.timeout_add(self._getSignOfLifeInterval()*60*1000, self._signOfLife)
@@ -188,11 +189,12 @@ class DbusGrowattShineXService:
 
 def main():
   #configure logging
-  log_rotate_handler = logging.RotatingFileHandler(
+  log_rotate_handler = logging.handlers.RotatingFileHandler(
     maxBytes=5*1024*1024*10,
     backupCount=2,
     encoding=None,
-    delay=0
+    delay=0,
+    filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
   )
   logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S',
