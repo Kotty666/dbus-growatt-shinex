@@ -233,7 +233,7 @@ def main():
         pvac_output = DbusGrowattShineXService(
         servicename='com.victronenergy.pvinverter',
         paths={
-         /Ac/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
+         '/Ac/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
          '/Ac/Power': {'inital': 0, 'textforamt': _w},
          '/Ac/L1/Current': {'inital': 0, 'textforamt': _a},
          '/Ac/L1/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
