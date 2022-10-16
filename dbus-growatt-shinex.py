@@ -194,65 +194,65 @@ class DbusGrowattShineXService:
 
 
 
-  def main():
-    #configure logging
-    log_rotate_handler = logging.handlers.RotatingFileHandler(
-        maxBytes=5*1024*1024*10,
-        backupCount=2,
-        encoding=None,
-        delay=0,
-        filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
-    )
-    logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S',
-        level=logging.INFO,
-        handlers=[
-        logging.StreamHandler(),
-        log_rotate_handler
-    ])
+def main():
+  #configure logging
+  log_rotate_handler = logging.handlers.RotatingFileHandler(
+      maxBytes=5*1024*1024*10,
+      backupCount=2,
+      encoding=None,
+      delay=0,
+      filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
+  )
+  logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+      datefmt='%Y-%m-%d %H:%M:%S',
+      level=logging.INFO,
+      handlers=[
+      logging.StreamHandler(),
+      log_rotate_handler
+  ])
 
-    try:
-        logging.info("Start");
+  try:
+      logging.info("Start");
 
-        from dbus.mainloop.glib import DBusGMainLoop
-        # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
-        DBusGMainLoop(set_as_default=True)
+      from dbus.mainloop.glib import DBusGMainLoop
+      # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
+      DBusGMainLoop(set_as_default=True)
 
-        config = configparser.ConfigParser()
-        config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
-        phase = config['DEFAULT']['Phase']
+      config = configparser.ConfigParser()
+      config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
+      phase = config['DEFAULT']['Phase']
 
-        #formatting
-        _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
-        _a = lambda p, v: (str(round(v, 1)) + 'A')
-        _w = lambda p, v: (str(round(v, 1)) + 'W')
-        _v = lambda p, v: (str(round(v, 1)) + 'V')
+      #formatting
+      _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
+      _a = lambda p, v: (str(round(v, 1)) + 'A')
+      _w = lambda p, v: (str(round(v, 1)) + 'W')
+      _v = lambda p, v: (str(round(v, 1)) + 'V')
 
-        #start our main-service
-        pvac_output = DbusGrowattShineXService(
-          servicename='com.victronenergy.pvinverter',
-          paths={
-            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            '/Ac/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _w},
-            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-          })
+      #start our main-service
+      pvac_output = DbusGrowattShineXService(
+        servicename='com.victronenergy.pvinverter',
+        paths={
+          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L2/Voltage': {'initial': 0, 'textformat': _w},
+          '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+        })
 
-        logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
-        mainloop = gobject.MainLoop()
-        mainloop.run()
-    except Exception as e:
-        logging.critical('Error at %s', 'main', exc_info=e)
+      logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
+      mainloop = gobject.MainLoop()
+      mainloop.run()
+  except Exception as e:
+      logging.critical('Error at %s', 'main', exc_info=e)
 
 
 if __name__ == "__main__":
