@@ -155,17 +155,14 @@ class DbusGrowattShineXService:
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
         self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['PV1EnergyTotal']
         self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
         self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
 
         self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L2/Energy/Forward'] = meter_data['PV2EnergyTotal']
         self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
         self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
 
         self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L3/Energy/Forward'] = meter_data['PV2EnergyTotal']
         self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
         self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
 
