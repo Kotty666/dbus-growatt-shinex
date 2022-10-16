@@ -143,40 +143,47 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
+      config = self._getConfig()
+      phase = config['DEFAULT']['Phase']
+      #get data from Shine X
+      meter_data = self._getShineXData()
 
-       config = self._getConfig()
-       phase = config['DEFAULT']['Phase']
-       #get data from Shine X
-       meter_data = self._getShineXData()
+      print(meter_data)
+      #send data to DBus
 
-       print(meter_data)
-       #send data to DBus
-       self._dbusservice['/Ac/' + phase  + '/Voltage'] = meter_data['AcVoltage']
+      self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+      self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
-       current = meter_data['AcPower'] / meter_data['AcVoltage']
-       self._dbusservice['/Ac/' + phase + '/Current'] = current
+      self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
+      self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['PV1EnergyTotal']
+      self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
+      self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
 
-       self._dbusservice['/Ac/' + phase + '/Power'] = meter_data['AcPower']
-       self._dbusservice['/Ac/' + phase + '/Energy/Forward'] = meter_data['EnergyTotal']
+      self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
+      self._dbusservice['/Ac/L2/Energy/Forward'] = meter_data['PV1EnergyTotal']
+      self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
+      self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
 
-       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + phase + '/Energy/Forward']
-       self._dbusservice['/Ac/Power'] = meter_data['AcPower']
+      self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
+      self._dbusservice['/Ac/L3/Energy/Forward'] = meter_data['PV1EnergyTotal']
+      self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
+      self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
 
-       #logging
-       logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
-       logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
-       logging.debug("---");
+      #logging
+      logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
+      logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+      logging.debug("---");
 
-       # increment UpdateIndex - to show that new data is available
-       index = self._dbusservice['/UpdateIndex'] + 1  # increment index
-       if index > 255:   # maximum value of the index
-         index = 0       # overflow from 255 to 0
-       self._dbusservice['/UpdateIndex'] = index
+      # increment UpdateIndex - to show that new data is available
+      index = self._dbusservice['/UpdateIndex'] + 1  # increment index
+      if index > 255:   # maximum value of the index
+      index = 0       # overflow from 255 to 0
+      self._dbusservice['/UpdateIndex'] = index
 
-       #update lastupdate vars
-       self._lastUpdate = time.time()
+      #update lastupdate vars
+      self._lastUpdate = time.time()
     except Exception as e:
-       logging.critical('Error at %s', '_update', exc_info=e)
+      logging.critical('Error at %s', '_update', exc_info=e)
 
     # return true, otherwise add_timeout will be removed from GObject - see docs http://library.isr.ist.utl.pt/docs/pygtk2reference/gobject-functions.html#function-gobject--timeout-add
     return True
