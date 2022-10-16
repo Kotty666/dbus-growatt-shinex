@@ -27,7 +27,6 @@ class DbusGrowattShineXService:
     config = self._getConfig()
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
-    phase = config['DEFAULT']['Phase']
 
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
@@ -135,14 +134,14 @@ class DbusGrowattShineXService:
     return meter_data
 
 
-def _signOfLife(self):
+  def _signOfLife(self):
     logging.info("--- Start: sign of life ---")
     logging.info("Last _update() call: %s" % (self._lastUpdate))
     logging.info("Last '/Ac/Power': %s" % (self._dbusservice['/Ac/Power']))
     logging.info("--- End: sign of life ---")
     return True
 
-def _update(self):
+  def _update(self):
     try:
         config = self._getConfig()
         phase = config['DEFAULT']['Phase']
@@ -189,14 +188,14 @@ def _update(self):
     # return true, otherwise add_timeout will be removed from GObject - see docs http://library.isr.ist.utl.pt/docs/pygtk2reference/gobject-functions.html#function-gobject--timeout-add
     return True
 
-def _handlechangedvalue(self, path, value):
+  def _handlechangedvalue(self, path, value):
     logging.debug("someone else updated %s to %s" % (path, value))
     return True # accept the change
 
 
 
-def main():
-#configure logging
+  def main():
+    #configure logging
     log_rotate_handler = logging.handlers.RotatingFileHandler(
         maxBytes=5*1024*1024*10,
         backupCount=2,
@@ -216,38 +215,38 @@ def main():
         logging.info("Start");
 
         from dbus.mainloop.glib import DBusGMainLoop
-# Have a mainloop, so we can send/receive asynchronous calls to and from dbus
+        # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
         DBusGMainLoop(set_as_default=True)
 
         config = configparser.ConfigParser()
         config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
         phase = config['DEFAULT']['Phase']
 
-#formatting
+        #formatting
         _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
         _a = lambda p, v: (str(round(v, 1)) + 'A')
         _w = lambda p, v: (str(round(v, 1)) + 'W')
         _v = lambda p, v: (str(round(v, 1)) + 'V')
 
-#start our main-service
+        #start our main-service
         pvac_output = DbusGrowattShineXService(
-        servicename='com.victronenergy.pvinverter',
-        paths={
-         '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-         '/Ac/Power': {'initial': 0, 'textformat': _w},
-         '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-         '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-         '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-         '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-         '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-         '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-         '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-         '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-         '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-         '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-         '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-         '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-        })
+          servicename='com.victronenergy.pvinverter',
+          paths={
+            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+          })
 
         logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
         mainloop = gobject.MainLoop()
@@ -257,4 +256,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+  main()
