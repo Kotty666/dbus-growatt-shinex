@@ -217,7 +217,6 @@ def main():
 
       config = configparser.ConfigParser()
       config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
-      phase = config['DEFAULT']['Phase']
 
       #formatting
       _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
