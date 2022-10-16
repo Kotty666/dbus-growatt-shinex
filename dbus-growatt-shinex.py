@@ -196,7 +196,7 @@ def _handlechangedvalue(self, path, value):
 
 
 def main():
-    #configure logging
+#configure logging
     log_rotate_handler = logging.handlers.RotatingFileHandler(
         maxBytes=5*1024*1024*10,
         backupCount=2,
@@ -205,47 +205,56 @@ def main():
         filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
     )
     logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        level=logging.INFO,
-                        handlers=[
-                            logging.StreamHandler(),
-                            log_rotate_handler
-                        ])
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO,
+        handlers=[
+        logging.StreamHandler(),
+        log_rotate_handler
+    ])
 
     try:
         logging.info("Start");
 
         from dbus.mainloop.glib import DBusGMainLoop
-        # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
+# Have a mainloop, so we can send/receive asynchronous calls to and from dbus
         DBusGMainLoop(set_as_default=True)
 
         config = configparser.ConfigParser()
         config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
         phase = config['DEFAULT']['Phase']
 
-        #formatting
+#formatting
         _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
         _a = lambda p, v: (str(round(v, 1)) + 'A')
         _w = lambda p, v: (str(round(v, 1)) + 'W')
         _v = lambda p, v: (str(round(v, 1)) + 'V')
 
-        #start our main-service
+#start our main-service
         pvac_output = DbusGrowattShineXService(
-            servicename='com.victronenergy.pvinverter',
-            paths={
-                '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # Total produced energy over all phases
-                '/Ac/Power': {'initial': 0, 'textformat': _w},
-
-                '/Ac/' + phase + '/Voltage': {'initial': 0, 'textformat': _v},
-                '/Ac/' + phase + '/Current': {'initial': 0, 'textformat': _a},
-                '/Ac/' + phase + '/Power': {'initial': 0, 'textformat': _w},
-                '/Ac/' + phase + '/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            })
+        servicename='com.victronenergy.pvinverter',
+        paths={
+         /Ac/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
+         '/Ac/Power': {'inital': 0, 'textforamt': _w},
+         '/Ac/L1/Current': {'inital': 0, 'textforamt': _a},
+         '/Ac/L1/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
+         '/Ac/L1/Power': {'inital': 0, 'textforamt': _w},
+         '/Ac/L1/Voltage': {'inital': 0, 'textforamt': _v},
+         '/Ac/L2/Current': {'inital': 0, 'textforamt': _a},
+         '/Ac/L2/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
+         '/Ac/L2/Power': {'inital': 0, 'textforamt': _w},
+         '/Ac/L2/Voltage': {'inital': 0, 'textforamt': _v},
+         '/Ac/L3/Current': {'inital': 0, 'textforamt': _a},
+         '/Ac/L3/Energy/Forward': {'inital': 0, 'textforamt': _kwh},
+         '/Ac/L3/Power': {'inital': 0, 'textforamt': _w},
+         '/Ac/L3/Voltage': {'inital': 0, 'textforamt': _v},
+        })
 
         logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
         mainloop = gobject.MainLoop()
         mainloop.run()
-  except Exception as e:
-      logging.critical('Error at %s', 'main', exc_info=e)
+    except Exception as e:
+        logging.critical('Error at %s', 'main', exc_info=e)
+
+
 if __name__ == "__main__":
     main()
