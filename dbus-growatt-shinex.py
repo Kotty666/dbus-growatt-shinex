@@ -27,7 +27,6 @@ class DbusGrowattShineXService:
     config = self._getConfig()
     deviceinstance = int(config['DEFAULT']['Deviceinstance'])
     customname = config['DEFAULT']['CustomName']
-    phase = config['DEFAULT']['Phase']
 
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
@@ -116,10 +115,13 @@ class DbusGrowattShineXService:
     if not meter_r:
         logging.info("No response from Shine X - %s" % (URL))
         time.sleep(20)
-        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
+        meter_data= {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
 
-    meter_data = meter_r.json()
+    try:
+      meter_data = meter_r.json()
+    except:
+      return False
 
     # check for Json
     if not meter_data:
@@ -127,9 +129,10 @@ class DbusGrowattShineXService:
         time.sleep(20)
         meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
 
-    if meter_data['Status'] == "Disconnected":
+    if 'InverterStatus' in meter_data:
+      if meter_data['InverterStatus'] == '0':
         logging.info("Stick not connected to Inverter")
-        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
+        meter_data= {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
     return meter_data
 
@@ -143,40 +146,46 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
+        config = self._getConfig()
+        #get data from Shine X
+        meter_data = self._getShineXData()
 
-       config = self._getConfig()
-       phase = config['DEFAULT']['Phase']
-       #get data from Shine X
-       meter_data = self._getShineXData()
+        #send data to DBus
+        try:
+          json.loads(meter_data)
+        except:
+          return False
 
-       print(meter_data)
-       #send data to DBus
-       self._dbusservice['/Ac/' + phase  + '/Voltage'] = meter_data['AcVoltage']
+        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
-       current = meter_data['AcPower'] / meter_data['AcVoltage']
-       self._dbusservice['/Ac/' + phase + '/Current'] = current
+        self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
+        self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
+        self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
 
-       self._dbusservice['/Ac/' + phase + '/Power'] = meter_data['AcPower']
-       self._dbusservice['/Ac/' + phase + '/Energy/Forward'] = meter_data['EnergyTotal']
+        self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
+        self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
+        self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
 
-       self._dbusservice['/Ac/Energy/Forward'] = self._dbusservice['/Ac/' + phase + '/Energy/Forward']
-       self._dbusservice['/Ac/Power'] = meter_data['AcPower']
+        self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
+        self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
+        self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
 
-       #logging
-       logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
-       logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
-       logging.debug("---");
+        #logging
+        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
+        logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+        logging.debug("---");
 
-       # increment UpdateIndex - to show that new data is available
-       index = self._dbusservice['/UpdateIndex'] + 1  # increment index
-       if index > 255:   # maximum value of the index
-         index = 0       # overflow from 255 to 0
-       self._dbusservice['/UpdateIndex'] = index
+        # increment UpdateIndex - to show that new data is available
+        index = self._dbusservice['/UpdateIndex'] + 1  # increment index
+        if index > 255:   # maximum value of the index
+            index = 0       # overflow from 255 to 0
+            self._dbusservice['/UpdateIndex'] = index
 
-       #update lastupdate vars
-       self._lastUpdate = time.time()
+            #update lastupdate vars
+            self._lastUpdate = time.time()
     except Exception as e:
-       logging.critical('Error at %s', '_update', exc_info=e)
+        logging.critical('Error at %s', '_update', exc_info=e)
 
     # return true, otherwise add_timeout will be removed from GObject - see docs http://library.isr.ist.utl.pt/docs/pygtk2reference/gobject-functions.html#function-gobject--timeout-add
     return True
@@ -190,19 +199,19 @@ class DbusGrowattShineXService:
 def main():
   #configure logging
   log_rotate_handler = logging.handlers.RotatingFileHandler(
-    maxBytes=5*1024*1024*10,
-    backupCount=2,
-    encoding=None,
-    delay=0,
-    filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
+      maxBytes=5*1024*1024*10,
+      backupCount=2,
+      encoding=None,
+      delay=0,
+      filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
   )
   logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-                            datefmt='%Y-%m-%d %H:%M:%S',
-                            level=logging.INFO,
-                            handlers=[
-                                logging.StreamHandler(),
-                                log_rotate_handler
-                            ])
+      datefmt='%Y-%m-%d %H:%M:%S',
+      level=logging.INFO,
+      handlers=[
+      logging.StreamHandler(),
+      log_rotate_handler
+  ])
 
   try:
       logging.info("Start");
@@ -213,7 +222,6 @@ def main():
 
       config = configparser.ConfigParser()
       config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
-      phase = config['DEFAULT']['Phase']
 
       #formatting
       _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
@@ -225,19 +233,28 @@ def main():
       pvac_output = DbusGrowattShineXService(
         servicename='com.victronenergy.pvinverter',
         paths={
-          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh}, # Total produced energy over all phases
+          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
           '/Ac/Power': {'initial': 0, 'textformat': _w},
-
-          '/Ac/' + phase + '/Voltage': {'initial': 0, 'textformat': _v},
-          '/Ac/' + phase + '/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/' + phase + '/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/' + phase + '/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+          '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L2/Voltage': {'initial': 0, 'textformat': _w},
+          '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+          '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+          '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+          '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
         })
 
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
       mainloop = gobject.MainLoop()
       mainloop.run()
   except Exception as e:
-    logging.critical('Error at %s', 'main', exc_info=e)
+      logging.critical('Error at %s', 'main', exc_info=e)
+
+
 if __name__ == "__main__":
   main()
