@@ -70,11 +70,10 @@ class DbusGrowattShineXService:
 
   def _getShineXSerial(self):
     meter_data = self._getShineXData()
-
-    if not meter_data['Mac']:
-        raise ValueError("Response does not contain 'mac' attribute")
-
-    serial = meter_data['Mac']
+    try:
+      serial = meter_data['Mac']
+    except:
+      serial = '00:00:00:00:00:00'
     return serial
 
 
@@ -109,25 +108,25 @@ class DbusGrowattShineXService:
 
   def _getShineXData(self):
     URL = self._getShineXStatusUrl()
-    meter_r = requests.get(url = URL)
-
-    # check for response
-    if not meter_r:
-        logging.info("No response from Shine X - %s" % (URL))
-        time.sleep(20)
-        meter_data= {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
-
+    headers={}
+    headers['accept-encoding'] = 'gzip'
+    headers['Content-Type'] = 'application/json'
+    try:
+      meter_r = requests.get(url = URL, timeout=10,headers=headers)
+    except:
+      logging.info("No response from Shine X - %s" % (URL))
+      time.sleep(30)
 
     try:
       meter_data = meter_r.json()
     except:
-      return False
+      meter_data = {"InverterStatus":1,"TotalGenerateEnergy": 0,"InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
     # check for Json
     if not meter_data:
-        logging.info("Converting response to JSON failed")
-        time.sleep(20)
-        meter_data={"AcVoltage": 239.5, "AcPower": 0, "EnergyTotal": 0}
+      logging.info("Converting response to JSON failed")
+      time.sleep(20)
+      meter_data = {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
     if 'InverterStatus' in meter_data:
       if meter_data['InverterStatus'] == '0':
@@ -147,14 +146,14 @@ class DbusGrowattShineXService:
   def _update(self):
     try:
         config = self._getConfig()
+        phase = config['DEFAULT']['Phase']
         #get data from Shine X
-        meter_data = self._getShineXData()
 
         #send data to DBus
-        try:
-          json.loads(meter_data)
-        except:
-          return False
+        meter_data = self._getShineXData()
+        if meter_data is False:
+          logging.info("Did not got valid Json.")
+          return True
 
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
@@ -212,16 +211,15 @@ def main():
       logging.StreamHandler(),
       log_rotate_handler
   ])
-
   try:
       logging.info("Start");
-
       from dbus.mainloop.glib import DBusGMainLoop
       # Have a mainloop, so we can send/receive asynchronous calls to and from dbus
       DBusGMainLoop(set_as_default=True)
 
       config = configparser.ConfigParser()
       config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
+      phase = config['DEFAULT']['Phase']
 
       #formatting
       _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
@@ -235,14 +233,17 @@ def main():
         paths={
           '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
           '/Ac/Power': {'initial': 0, 'textformat': _w},
+
           '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
           '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
           '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
           '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+
           '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
           '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
           '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L2/Voltage': {'initial': 0, 'textformat': _w},
+          '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+
           '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
           '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
           '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
@@ -253,7 +254,7 @@ def main():
       mainloop = gobject.MainLoop()
       mainloop.run()
   except Exception as e:
-      logging.critical('Error at %s', 'main', exc_info=e)
+    logging.critical('Error at %s', 'main', exc_info=e)
 
 
 if __name__ == "__main__":
