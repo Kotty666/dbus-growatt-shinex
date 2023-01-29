@@ -40,8 +40,9 @@ class DbusGrowattShineXService:
 
     # Create the mandatory objects
     self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-    self._dbusservice.add_path('/ProductId', 0xB099) # id needs to be assigned by Victron Support current value for testing
-    self._dbusservice.add_path('/DeviceType', 666) # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
+    self._dbusservice.add_path('/ProductId',0xA142) # id needs to be assigned by Victron Support current value for testing
+    #self._dbusservice.add_path('/DeviceType', 345) # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
+    #self._dbusservice.add_path('/DeviceType', 73) # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
     self._dbusservice.add_path('/ProductName', productname)
     self._dbusservice.add_path('/CustomName', customname)
     self._dbusservice.add_path('/Latency', None)
@@ -49,10 +50,10 @@ class DbusGrowattShineXService:
     self._dbusservice.add_path('/HardwareVersion', 0)
     self._dbusservice.add_path('/Connected', 1)
     self._dbusservice.add_path('/Role', 'pvinverter')
-    self._dbusservice.add_path('/Position', 0) # normaly only needed for pvinverter
+    self._dbusservice.add_path('/Position', 1) # normaly only needed for pvinverter
     self._dbusservice.add_path('/Serial', self._getShineXSerial())
-    #self._dbusservice.add_path('/Serial', '0815')
     self._dbusservice.add_path('/UpdateIndex', 0)
+    self._dbusservice.add_path('/StatusCode', 7) 
 
     # add path values to dbus
     for path, settings in self._paths.items():
@@ -63,7 +64,7 @@ class DbusGrowattShineXService:
     self._lastUpdate = 0
 
     # add _update function 'timer'
-    gobject.timeout_add(1000, self._update) # pause 1000ms before the next request
+    gobject.timeout_add(2000, self._update) # pause 1000ms before the next request
 
     # add _signOfLife 'timer' to get feedback in log every 5minutes
     gobject.timeout_add(self._getSignOfLifeInterval()*60*1000, self._signOfLife)
@@ -74,7 +75,7 @@ class DbusGrowattShineXService:
       serial = meter_data['Mac']
     except:
       serial = '00:00:00:00:00:00'
-    return serial
+    return serial.replace(':','')
 
 
   def _getConfig(self):
@@ -109,10 +110,21 @@ class DbusGrowattShineXService:
   def _getShineXData(self):
     URL = self._getShineXStatusUrl()
     headers={}
-    headers['accept-encoding'] = 'gzip'
     headers['Content-Type'] = 'application/json'
+
     try:
       meter_r = requests.get(url = URL, timeout=10,headers=headers)
+      if ( meter_r.status_code == 200 and meter_r.headers.get('Content-Type').startswith('text/html')):
+        REBOOT_URL = URL.replace('/status','/restart')
+        resp = requests.get(url = REBOOT_URL, timeout = 10)
+        logging.info("Reboot triggered")
+    except requests.exceptions.Timeout:
+      logging.info("RequestTimeout")
+    except requests.exceptions.TooManyRedirects:
+      print("Too Many Redirects")
+    except requests.exceptions.RequestException as e:
+      logging.info("No response from Shine X - %s" % (URL))
+      print(e)
     except:
       logging.info("No response from Shine X - %s" % (URL))
       time.sleep(30)
@@ -140,6 +152,7 @@ class DbusGrowattShineXService:
     logging.info("--- Start: sign of life ---")
     logging.info("Last _update() call: %s" % (self._lastUpdate))
     logging.info("Last '/Ac/Power': %s" % (self._dbusservice['/Ac/Power']))
+    logging.info("Last '/Ac/Energy/Forward': %s" (self._dbusservice['/Ac/Energy/Forward']))
     logging.info("--- End: sign of life ---")
     return True
 
@@ -154,7 +167,18 @@ class DbusGrowattShineXService:
         if meter_data is False:
           logging.info("Did not got valid Json.")
           return True
+        
+        if meter_data['L2ThreePhaseGridOutputPower'] > 0:
+            self._dbusservice['/Ac/L1/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
+            self._dbusservice['/Ac/L2/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
+            self._dbusservice['/Ac/L3/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 ) 
+        else:
+            self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+            self._dbusservice['/Ac/L2/Energy/Forward'] = 0
+            self._dbusservice['/Ac/L3/Energy/Forward'] = 0
 
+        self._dbusservice['/Connected'] = meter_data['InverterStatus']
+        self._dbusservice['/ErrorCode'] = 0
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
@@ -174,15 +198,9 @@ class DbusGrowattShineXService:
         logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
         logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
         logging.debug("---");
-
-        # increment UpdateIndex - to show that new data is available
-        index = self._dbusservice['/UpdateIndex'] + 1  # increment index
-        if index > 255:   # maximum value of the index
-            index = 0       # overflow from 255 to 0
-            self._dbusservice['/UpdateIndex'] = index
-
-            #update lastupdate vars
-            self._lastUpdate = time.time()
+        
+        self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
+        self._lastUpdate = time.time()
     except Exception as e:
         logging.critical('Error at %s', '_update', exc_info=e)
 
@@ -231,23 +249,24 @@ def main():
       pvac_output = DbusGrowattShineXService(
         servicename='com.victronenergy.pvinverter',
         paths={
-          '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-          '/Ac/Power': {'initial': 0, 'textformat': _w},
+            '/ErrorCode': {'initial': 0, 'textformat': '' },
+            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/Power': {'initial': 0, 'textformat': _w},
 
-          '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-          '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
 
-          '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-          '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
 
-          '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-          '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-          '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-          '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
+            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
+            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
+            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
         })
 
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
