@@ -53,7 +53,7 @@ class DbusGrowattShineXService:
     self._dbusservice.add_path('/Position', 1) # normaly only needed for pvinverter
     self._dbusservice.add_path('/Serial', self._getShineXSerial())
     self._dbusservice.add_path('/UpdateIndex', 0)
-    self._dbusservice.add_path('/StatusCode', 7) 
+    self._dbusservice.add_path('/StatusCode', 7)
 
     # add path values to dbus
     for path, settings in self._paths.items():
@@ -152,7 +152,7 @@ class DbusGrowattShineXService:
     logging.info("--- Start: sign of life ---")
     logging.info("Last _update() call: %s" % (self._lastUpdate))
     logging.info("Last '/Ac/Power': %s" % (self._dbusservice['/Ac/Power']))
-    logging.info("Last '/Ac/Energy/Forward': %s" (self._dbusservice['/Ac/Energy/Forward']))
+    logging.info("Last '/Ac/Energy/Forward': %s" % (self._dbusservice['/Ac/Energy/Forward']))
     logging.info("--- End: sign of life ---")
     return True
 
@@ -167,11 +167,11 @@ class DbusGrowattShineXService:
         if meter_data is False:
           logging.info("Did not got valid Json.")
           return True
-        
+
         if meter_data['L2ThreePhaseGridOutputPower'] > 0:
             self._dbusservice['/Ac/L1/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
             self._dbusservice['/Ac/L2/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
-            self._dbusservice['/Ac/L3/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 ) 
+            self._dbusservice['/Ac/L3/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
         else:
             self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
             self._dbusservice['/Ac/L2/Energy/Forward'] = 0
@@ -198,7 +198,7 @@ class DbusGrowattShineXService:
         logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
         logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
         logging.debug("---");
-        
+
         self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
         self._lastUpdate = time.time()
     except Exception as e:
