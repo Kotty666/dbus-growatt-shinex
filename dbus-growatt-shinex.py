@@ -179,20 +179,21 @@ class DbusGrowattShineXService:
 
         self._dbusservice['/Connected'] = meter_data['InverterStatus']
         self._dbusservice['/ErrorCode'] = 0
-        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-        self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
+        if meter_data['TotalGenerateEnergy'] > 0:
+            self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+            self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
-        self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
-        self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
+            self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
+            self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
+            self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
 
-        self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
-        self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
+            self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
+            self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
+            self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
 
-        self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
-        self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
-        self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
+            self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
+            self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
+            self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
 
         #logging
         logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
@@ -249,24 +250,24 @@ def main():
       pvac_output = DbusGrowattShineXService(
         servicename='com.victronenergy.pvinverter',
         paths={
-            '/ErrorCode': {'initial': 0, 'textformat': '' },
-            '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
-            '/Ac/Power': {'initial': 0, 'textformat': _w},
+            '/ErrorCode': {'initial': None, 'textformat': '' },
+            '/Ac/Energy/Forward': {'initial': None, 'textformat': _kwh},
+            '/Ac/Power': {'initial': None, 'textformat': _w},
 
-            '/Ac/L1/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L1/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L1/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L1/Current': {'initial': None, 'textformat': _a},
+            '/Ac/L1/Power': {'initial': None, 'textformat': _w},
+            '/Ac/L1/Voltage': {'initial': None, 'textformat': _v},
+            '/Ac/L1/Energy/Forward': {'initial': None, 'textformat': _kwh},
 
-            '/Ac/L2/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L2/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L2/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L2/Current': {'initial': None, 'textformat': _a},
+            '/Ac/L2/Power': {'initial': None, 'textformat': _w},
+            '/Ac/L2/Voltage': {'initial': None, 'textformat': _v},
+            '/Ac/L2/Energy/Forward': {'initial': None, 'textformat': _kwh},
 
-            '/Ac/L3/Current': {'initial': 0, 'textformat': _a},
-            '/Ac/L3/Power': {'initial': 0, 'textformat': _w},
-            '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
-            '/Ac/L3/Energy/Forward': {'initial': 0, 'textformat': _kwh},
+            '/Ac/L3/Current': {'initial': None, 'textformat': _a},
+            '/Ac/L3/Power': {'initial': None, 'textformat': _w},
+            '/Ac/L3/Voltage': {'initial': None, 'textformat': _v},
+            '/Ac/L3/Energy/Forward': {'initial': None, 'textformat': _kwh},
         })
 
       logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
