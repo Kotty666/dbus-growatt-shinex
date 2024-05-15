@@ -1,6 +1,6 @@
 # dbus-growatt-shinex
 Integrate Growatt-ShineWifi into Victron Energies Venus OS
- - https://github.com/otti/Growatt_ShineWiFi-S
+ - https://github.com/OpenInverterGateway/OpenInverterGateway
 
 ## Purpose
 With the scripts in this repo it should be easy possible to install, uninstall, restart a service that connects the Growatt Inverter to the VenusOS and GX devices from Victron.
