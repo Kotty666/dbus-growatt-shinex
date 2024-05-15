@@ -172,7 +172,6 @@ class DbusGrowattShineXService:
         return True
 
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
-      self._dbusservice['/ErrorCode'] = 0
 
       if meter_data['{}ThreePhaseGridOutputPower'.format(nuPhase[0])] > 0:
         PhaseList = ['L1','L2','L3']
