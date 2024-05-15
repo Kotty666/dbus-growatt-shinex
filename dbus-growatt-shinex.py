@@ -157,7 +157,7 @@ class DbusGrowattShineXService:
   def _update(self):
     try:
       config = self._getConfig()
-      LocalPhase = config['DEFAULT']['Phase']
+      LocalPhase = [config['DEFAULT']['Phase']]
       allPhase = ['L1','L2','L3']
       nuPhase = list(set(allPhase) - set(LocalPhase))
       #get data from Shine X
@@ -168,20 +168,20 @@ class DbusGrowattShineXService:
         logging.info("Did not got valid Json.")
         return True
 
-      self._dbusservice['/Connected'] = meter_data['InverterStatus']
-      self._dbusservice['/ErrorCode'] = 0
-
       if meter_data['InverterStatus'] == 0:
         return True
 
-      if meter_data['L2ThreePhaseGridOutputPower'] > 0:
+      self._dbusservice['/Connected'] = meter_data['InverterStatus']
+      self._dbusservice['/ErrorCode'] = 0
+
+      if meter_data['{}ThreePhaseGridOutputPower'.format(nuPhase[0])] > 0:
         PhaseList = ['L1','L2','L3']
         for Phase in PhaseList:
           dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
-          self._dbusservice[dbname] = ( meter_data['TotalGenerateEnergy'] / 3 )
+          self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
       else:
-        PhaseList = list(LocalPhase)
-        self._dbusservice['/Ac/{}/Energy/Forward'.format(LocalPhase)] = meter_data['TotalGenerateEnergy']
+        PhaseList = LocalPhase
+        self._dbusservice['/Ac/{}/Energy/Forward'.format(LocalPhase[0])] = meter_data['TotalGenerateEnergy']
         for Phase in nuPhase:
           self._dbusservice['/Ac/{}/Energy/Forward'.format(Phase)] = 0
 
@@ -198,7 +198,10 @@ class DbusGrowattShineXService:
           mVol = '{}ThreePhaseGridVoltage'.format(Phase)
 
           if meter_data[mCur] == 0.5:
-            meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
+            if meter_data['{}ThreePhaseGridOutputPower'.format(nuPhase[0])] > 0:
+              meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
+            else:
+              meter_data[mCur] = meter_data['OutputPower'] / meter_data[mVol]
           self._dbusservice[dbCur] = meter_data[mCur]
           self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
           self._dbusservice[dbVol] = meter_data[mVol]
