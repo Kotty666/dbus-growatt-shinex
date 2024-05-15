@@ -157,7 +157,9 @@ class DbusGrowattShineXService:
   def _update(self):
     try:
       config = self._getConfig()
-      phase = config['DEFAULT']['Phase']
+      LocalPhase = config['DEFAULT']['Phase']
+      allPhase = ['L1','L2','L3']
+      nuPhase = list(set(allPhase) - set(LocalPhase))
       #get data from Shine X
 
       #send data to DBus
@@ -178,10 +180,10 @@ class DbusGrowattShineXService:
           dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
           self._dbusservice[dbname] = ( meter_data['TotalGenerateEnergy'] / 3 )
       else:
-        PhaseList = ['L1']
-        self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-        self._dbusservice['/Ac/L2/Energy/Forward'] = 0
-        self._dbusservice['/Ac/L3/Energy/Forward'] = 0
+        PhaseList = list(LocalPhase)
+        self._dbusservice['/Ac/{}/Energy/Forward'.format(LocalPhase)] = meter_data['TotalGenerateEnergy']
+        for Phase in nuPhase:
+          self._dbusservice['/Ac/{}/Energy/Forward'.format(Phase)] = 0
 
       if meter_data['TotalGenerateEnergy'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
