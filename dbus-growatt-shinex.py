@@ -41,12 +41,10 @@ class DbusGrowattShineXService:
     # Create the mandatory objects
     self._dbusservice.add_path('/DeviceInstance', deviceinstance)
     self._dbusservice.add_path('/ProductId',0xA142) # id needs to be assigned by Victron Support current value for testing
-    #self._dbusservice.add_path('/DeviceType', 345) # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
-    #self._dbusservice.add_path('/DeviceType', 73) # found on https://www.sascha-curth.de/projekte/005_Color_Control_GX.html#experiment - should be an ET340 Engerie Meter
     self._dbusservice.add_path('/ProductName', productname)
     self._dbusservice.add_path('/CustomName', customname)
     self._dbusservice.add_path('/Latency', None)
-    self._dbusservice.add_path('/FirmwareVersion', 0.1)
+    self._dbusservice.add_path('/FirmwareVersion', 0.2)
     self._dbusservice.add_path('/HardwareVersion', 0)
     self._dbusservice.add_path('/Connected', 1)
     self._dbusservice.add_path('/Role', 'pvinverter')
@@ -158,52 +156,60 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
-        config = self._getConfig()
-        phase = config['DEFAULT']['Phase']
-        #get data from Shine X
+      config = self._getConfig()
+      phase = config['DEFAULT']['Phase']
+      #get data from Shine X
 
-        #send data to DBus
-        meter_data = self._getShineXData()
-        if meter_data is False:
-          logging.info("Did not got valid Json.")
-          return True
+      #send data to DBus
+      meter_data = self._getShineXData()
+      if meter_data is False:
+        logging.info("Did not got valid Json.")
+        return True
 
-        if meter_data['L2ThreePhaseGridOutputPower'] > 0:
-            self._dbusservice['/Ac/L1/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
-            self._dbusservice['/Ac/L2/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
-            self._dbusservice['/Ac/L3/Energy/Forward'] = ( meter_data['TotalGenerateEnergy'] / 3 )
-        else:
-            self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-            self._dbusservice['/Ac/L2/Energy/Forward'] = 0
-            self._dbusservice['/Ac/L3/Energy/Forward'] = 0
+      self._dbusservice['/Connected'] = meter_data['InverterStatus']
+      self._dbusservice['/ErrorCode'] = 0
 
-        self._dbusservice['/Connected'] = meter_data['InverterStatus']
-        self._dbusservice['/ErrorCode'] = 0
-        if meter_data['TotalGenerateEnergy'] > 0:
-            self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-            self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
+      if meter_data['InverterStatus'] == 0:
+        return True
 
-            self._dbusservice['/Ac/L1/Current'] = meter_data['L1ThreePhaseGridOutputCurrent']
-            self._dbusservice['/Ac/L1/Power'] = meter_data['L1ThreePhaseGridOutputPower']
-            self._dbusservice['/Ac/L1/Voltage'] = meter_data['L1ThreePhaseGridVoltage']
+      if meter_data['L2ThreePhaseGridOutputPower'] > 0:
+        PhaseList = ['L1','L2','L3']
+        for Phase in PhaseList:
+          dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
+          self._dbusservice[dbname] = ( meter_data['TotalGenerateEnergy'] / 3 )
+      else:
+        PhaseList = ['L1']
+        self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/L2/Energy/Forward'] = 0
+        self._dbusservice['/Ac/L3/Energy/Forward'] = 0
 
-            self._dbusservice['/Ac/L2/Current'] = meter_data['L2ThreePhaseGridOutputCurrent']
-            self._dbusservice['/Ac/L2/Power'] = meter_data['L2ThreePhaseGridOutputPower']
-            self._dbusservice['/Ac/L2/Voltage'] = meter_data['L2ThreePhaseGridVoltage']
+      if meter_data['TotalGenerateEnergy'] > 0:
+        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
-            self._dbusservice['/Ac/L3/Current'] = meter_data['L3ThreePhaseGridOutputCurrent']
-            self._dbusservice['/Ac/L3/Power'] = meter_data['L3ThreePhaseGridOutputPower']
-            self._dbusservice['/Ac/L3/Voltage'] = meter_data['L3ThreePhaseGridVoltage']
+        for Phase in PhaseList:
+          dbCur = '/Ac/{}/Current'.format(Phase)
+          dbPow = '/Ac/{}/Power'.format(Phase)
+          dbVol = '/Ac/{}/Voltage'.format(Phase)
+          mCur = '{}ThreePhaseGridOutputCurrent'.format(Phase)
+          mPow = '{}ThreePhaseGridOutputPower'.format(Phase)
+          mVol = '{}ThreePhaseGridOutputVoltage'.format(Phase)
 
-        #logging
-        logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
-        logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
-        logging.debug("---");
+          if mCur > 0.5:
+            meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
+          self._dbusservice[dbCur] = meter_data[mCur]
+          self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
+          self._dbusservice[dbVol] = meter_data[mVol]
 
-        self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
-        self._lastUpdate = time.time()
+      #logging
+      logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
+      logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+      logging.debug("---");
+
+      self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
+      self._lastUpdate = time.time()
     except Exception as e:
-        logging.critical('Error at %s', '_update', exc_info=e)
+      logging.critical('Error at %s', '_update', exc_info=e)
 
     # return true, otherwise add_timeout will be removed from GObject - see docs http://library.isr.ist.utl.pt/docs/pygtk2reference/gobject-functions.html#function-gobject--timeout-add
     return True
@@ -238,7 +244,6 @@ def main():
 
       config = configparser.ConfigParser()
       config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
-      phase = config['DEFAULT']['Phase']
 
       #formatting
       _kwh = lambda p, v: (str(round(v, 2)) + 'KWh')
