@@ -167,7 +167,6 @@ class DbusGrowattShineXService:
         return True
 
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
-      self._dbusservice['/ErrorCode'] = 0
 
       if meter_data['InverterStatus'] == 0:
         return True
