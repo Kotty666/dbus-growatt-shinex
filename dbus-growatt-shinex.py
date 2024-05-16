@@ -130,18 +130,7 @@ class DbusGrowattShineXService:
     try:
       meter_data = meter_r.json()
     except:
-      meter_data = {"InverterStatus":1,"TotalGenerateEnergy": 0,"InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
-
-    # check for Json
-    if not meter_data:
-      logging.info("Converting response to JSON failed")
-      time.sleep(20)
-      meter_data = {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
-
-    if 'InverterStatus' in meter_data:
-      if meter_data['InverterStatus'] == '0':
-        logging.info("Stick not connected to Inverter")
-        meter_data= {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
+      meter_data = {"InverterStatus":0,"TotalGenerateEnergy": 0,"InputPower":0,"OutputPower":0,"GridFrequency":0,"L1ThreePhaseGridVoltage":0,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
     return meter_data
 
@@ -169,6 +158,11 @@ class DbusGrowattShineXService:
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
 
       if meter_data['InverterStatus'] == 0:
+        return True
+
+      if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0:
+        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/Power'] = 0
         return True
 
       if meter_data['L2ThreePhaseGridOutputPower'] > 0:
