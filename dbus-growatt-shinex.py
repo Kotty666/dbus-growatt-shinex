@@ -110,6 +110,8 @@ class DbusGrowattShineXService:
     headers={}
     headers['Content-Type'] = 'application/json'
 
+    meter_data = {"InverterStatus":0}
+
     try:
       meter_r = requests.get(url = URL, timeout=10,headers=headers)
       if ( meter_r.status_code == 200 and meter_r.headers.get('Content-Type').startswith('text/html')):
@@ -125,12 +127,9 @@ class DbusGrowattShineXService:
       print(e)
     except:
       logging.info("No response from Shine X - %s" % (URL))
-      time.sleep(30)
 
     try:
       meter_data = meter_r.json()
-    except:
-      meter_data = {"InverterStatus":0,"TotalGenerateEnergy": 0,"InputPower":0,"OutputPower":0,"GridFrequency":0,"L1ThreePhaseGridVoltage":0,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
 
     return meter_data
 
@@ -158,6 +157,20 @@ class DbusGrowattShineXService:
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
 
       if meter_data['InverterStatus'] == 0:
+        PhaseList = ['L1','L2','L3']
+        for Phase in PhaseList:
+          dbCur = '/Ac/{}/Current'.format(Phase)
+          dbPow = '/Ac/{}/Power'.format(Phase)
+          dbVol = '/Ac/{}/Voltage'.format(Phase)
+          mCur = '{}ThreePhaseGridOutputCurrent'.format(Phase)
+          mPow = '{}ThreePhaseGridOutputPower'.format(Phase)
+          mVol = '{}ThreePhaseGridVoltage'.format(Phase)
+
+          self._dbusservice[dbCur] = 0
+          self._dbusservice[dbPow] = 0
+          self._dbusservice[dbVol] = 0
+
+        self._dbusservice['/Ac/Power'] = 0
         return True
 
       if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0:
