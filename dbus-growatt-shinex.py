@@ -147,6 +147,7 @@ class DbusGrowattShineXService:
       config = self._getConfig()
       phase = config['DEFAULT']['Phase']
       #get data from Shine X
+      print(meter_data)
 
       #send data to DBus
       meter_data = self._getShineXData()
@@ -227,14 +228,14 @@ class DbusGrowattShineXService:
 
 
 def main():
+  logpath = '/var/log/%s' % (os.path.dirname(os.path.realpath(__file__)).split('/')[-1])
   #configure logging
   log_rotate_handler = logging.handlers.RotatingFileHandler(
       maxBytes=5*1024*1024*10,
       backupCount=2,
       encoding=None,
       delay=0,
-      filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
-  )
+      filename="%s/current.log" % (logpath)
   logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
       datefmt='%Y-%m-%d %H:%M:%S',
       level=logging.INFO,
