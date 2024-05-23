@@ -229,6 +229,8 @@ class DbusGrowattShineXService:
 
 def main():
   logpath = '/var/log/%s' % (os.path.dirname(os.path.realpath(__file__)).split('/')[-1])
+  if not os.path.isdir(logpath):
+      os.mkdir(logpath,0o755)
   #configure logging
   log_rotate_handler = logging.handlers.RotatingFileHandler(
       maxBytes=5*1024*1024*10,
