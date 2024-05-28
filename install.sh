@@ -2,6 +2,10 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 SERVICE_NAME=$(basename $SCRIPT_DIR)
 
+if [ -f $SCRIPT_DIR/current.log ]; then
+    rm $SCRIPT_DIR/current.log*
+fi
+
 # set permissions for script files
 chmod a+x $SCRIPT_DIR/restart.sh
 chmod 744 $SCRIPT_DIR/restart.sh
@@ -11,6 +15,9 @@ chmod 744 $SCRIPT_DIR/uninstall.sh
 
 chmod a+x $SCRIPT_DIR/service/run
 chmod 755 $SCRIPT_DIR/service/run
+
+chmod a+x $SCRIPT_DIR/service/log/run
+chmod 755 $SCRIPT_DIR/service/log/ru
 
 # create sym-link to run script in deamon
 ln -s $SCRIPT_DIR/service /service/$SERVICE_NAME
