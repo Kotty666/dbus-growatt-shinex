@@ -31,7 +31,7 @@ class DbusGrowattShineXService:
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
 
-    logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
+    logging.info("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
     # Create the management objects, as specified in the ccgx dbus-api document
     self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -147,7 +147,9 @@ class DbusGrowattShineXService:
   def _update(self):
     try:
       config = self._getConfig()
-      phase = config['DEFAULT']['Phase']
+      LocalPhase = config['DEFAULT']['Phase']
+      allPhase = ['L1','L2','L3']
+      nuPhase = list(set(allPhase) - set(LocalPhase))
       #get data from Shine X
 
       #send data to DBus
@@ -180,32 +182,34 @@ class DbusGrowattShineXService:
         self._dbusservice['/Ac/Power'] = 0
         return True
 
-      if meter_data['L2ThreePhaseGridOutputPower'] > 0:
-        PhaseList = ['L1','L2','L3']
+      if meter_data['L3ThreePhaseGridOutputPower'] > 0:
+        PhaseList = allPhase
         for Phase in PhaseList:
           dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
           self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
         if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5:
             meter_data['OutputPower'] = 0
       else:
-        PhaseList = ['L1']
-        self._dbusservice['/Ac/L1/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-        self._dbusservice['/Ac/L2/Energy/Forward'] = 0
-        self._dbusservice['/Ac/L3/Energy/Forward'] = 0
+        PhaseList = [LocalPhase]
+        ef = '/Ac/{}/Energy/Forward'.format(LocalPhase)
+        self._dbusservice[ef] = meter_data['TotalGenerateEnergy']
         if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5:
             meter_data['OutputPower'] = 0
-
       if meter_data['TotalGenerateEnergy'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
         for Phase in PhaseList:
+          if len(PhaseList) == 1:
+            LPhase = 'L1'
+          else:
+            LPhase = Phase
           dbCur = '/Ac/{}/Current'.format(Phase)
           dbPow = '/Ac/{}/Power'.format(Phase)
           dbVol = '/Ac/{}/Voltage'.format(Phase)
-          mCur = '{}ThreePhaseGridOutputCurrent'.format(Phase)
-          mPow = '{}ThreePhaseGridOutputPower'.format(Phase)
-          mVol = '{}ThreePhaseGridVoltage'.format(Phase)
+          mCur = '{}ThreePhaseGridOutputCurrent'.format(LPhase)
+          mPow = '{}ThreePhaseGridOutputPower'.format(LPhase)
+          mVol = '{}ThreePhaseGridVoltage'.format(LPhase)
 
           if meter_data[mCur] == 0.5:
             meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
@@ -214,9 +218,9 @@ class DbusGrowattShineXService:
           self._dbusservice[dbVol] = meter_data[mVol]
 
       #logging
-      logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
-      logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
-      logging.debug("---");
+      logging.info("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
+      logging.info("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+      logging.info("---");
 
       self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
       self._lastUpdate = time.time()
@@ -227,14 +231,14 @@ class DbusGrowattShineXService:
     return True
 
   def _handlechangedvalue(self, path, value):
-    logging.debug("someone else updated %s to %s" % (path, value))
+    logging.info("someone else updated %s to %s" % (path, value))
     return True # accept the change
 
 
 
 def main():
   #configure logging
-  logging_level = ERROR
+  logging_level = "ERROR"
   logging.basicConfig(format="%(levelname)s %(message)s",level=logging_level,)
   try:
       logging.info("Start");
