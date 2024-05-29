@@ -233,23 +233,9 @@ class DbusGrowattShineXService:
 
 
 def main():
-  logpath = '/var/log/%s' % (os.path.dirname(os.path.realpath(__file__)).split('/')[-1])
-  if not os.path.exists(logpath):
-      os.mkdir(logpath,0o755)
   #configure logging
-  log_rotate_handler = logging.handlers.RotatingFileHandler(
-      maxBytes=5*1024*1024*10,
-      backupCount=2,
-      encoding=None,
-      delay=0,
-      filename="%s/current.log" % (logpath))
-  logging.basicConfig(format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-      datefmt='%Y-%m-%d %H:%M:%S',
-      level=logging.INFO,
-      handlers=[
-      logging.StreamHandler(),
-      log_rotate_handler
-  ])
+  logging_level = ERROR
+  logging.basicConfig(format="%(levelname)s %(message)s",level=logging_level,)
   try:
       logging.info("Start");
       from dbus.mainloop.glib import DBusGMainLoop
