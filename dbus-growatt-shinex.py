@@ -159,7 +159,6 @@ class DbusGrowattShineXService:
         return True
 
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
-
       if meter_data['InverterStatus'] == 0:
         PhaseList = ['L1','L2','L3']
         for Phase in PhaseList:
@@ -176,6 +175,7 @@ class DbusGrowattShineXService:
 
         self._dbusservice['/Ac/Power'] = 0
         return True
+
 
       if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
@@ -195,6 +195,7 @@ class DbusGrowattShineXService:
         self._dbusservice[ef] = meter_data['TotalGenerateEnergy']
         if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5:
             meter_data['OutputPower'] = 0
+
       if meter_data['TotalGenerateEnergy'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
@@ -207,6 +208,7 @@ class DbusGrowattShineXService:
           dbCur = '/Ac/{}/Current'.format(Phase)
           dbPow = '/Ac/{}/Power'.format(Phase)
           dbVol = '/Ac/{}/Voltage'.format(Phase)
+
           mCur = '{}ThreePhaseGridOutputCurrent'.format(LPhase)
           mPow = '{}ThreePhaseGridOutputPower'.format(LPhase)
           mVol = '{}ThreePhaseGridVoltage'.format(LPhase)
