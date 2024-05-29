@@ -31,7 +31,7 @@ class DbusGrowattShineXService:
     self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
     self._paths = paths
 
-    logging.debug("%s /DeviceInstance = %d" % (servicename, deviceinstance))
+    logging.info("%s /DeviceInstance = %d" % (servicename, deviceinstance))
 
     # Create the management objects, as specified in the ccgx dbus-api document
     self._dbusservice.add_path('/Mgmt/ProcessName', __file__)
@@ -110,6 +110,8 @@ class DbusGrowattShineXService:
     headers={}
     headers['Content-Type'] = 'application/json'
 
+    meter_data = {"InverterStatus":0}
+
     try:
       meter_r = requests.get(url = URL, timeout=10,headers=headers)
       if ( meter_r.status_code == 200 and meter_r.headers.get('Content-Type').startswith('text/html')):
@@ -125,23 +127,11 @@ class DbusGrowattShineXService:
       print(e)
     except:
       logging.info("No response from Shine X - %s" % (URL))
-      time.sleep(30)
 
     try:
       meter_data = meter_r.json()
     except:
-      meter_data = {"InverterStatus":1,"TotalGenerateEnergy": 0,"InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
-
-    # check for Json
-    if not meter_data:
-      logging.info("Converting response to JSON failed")
-      time.sleep(20)
-      meter_data = {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
-
-    if 'InverterStatus' in meter_data:
-      if meter_data['InverterStatus'] == '0':
-        logging.info("Stick not connected to Inverter")
-        meter_data= {"InverterStatus":1,"InputPower":0,"PV1Voltage":0,"PV1InputCurrent":0,"PV1InputPower":0,"PV2Voltage":0,"PV2InputCurrent":0,"PV2InputPower":0,"OutputPower":0,"GridFrequency":49.99,"L1ThreePhaseGridVoltage":229.5,"L1ThreePhaseGridOutputCurrent":0,"L1ThreePhaseGridOutputPower":0,"L2ThreePhaseGridVoltage":0,"L2ThreePhaseGridOutputCurrent":0,"L2ThreePhaseGridOutputPower":0,"L3ThreePhaseGridVoltage":0,"L3ThreePhaseGridOutputCurrent":0,"L3ThreePhaseGridOutputPower":0,"TodayGenerateEnergy":0,"TotalGenerateEnergy":1,"TWorkTimeTotal":1,"PV1EnergyToday":1,"PV1EnergyTotal":1,"PV2EnergyToday":0,"PV2EnergyTotal":0,"PVEnergyTotal":1,"InverterTemperature":31.8,"TemperatureInsideIPM":31.8,"BoostTemperature":0,"DischargePower":0,"ChargePower":0,"BatteryVoltage":0,"SOC":0,"ACPowerToUser":0,"ACPowerToUserTotal":0,"ACPowerToGrid":0,"ACPowerToGridTotal":0,"INVPowerToLocalLoad":0,"INVPowerToLocalLoadTotal":0,"BatteryTemperature":0,"BatteryState":0,"EnergyToUserToday":0,"EnergyToUserTotal":0,"EnergyToGridToday":0,"EnergyToGridTotal":0,"DischargeEnergyToday":0,"DischargeEnergyTotal":0,"ChargeEnergyToday":0,"ChargeEnergyTotal":0,"LocalLoadEnergyToday":0,"LocalLoadEnergyTotal":0,"Mac":"AA:BB:CC:11:22:22","Cnt":1}
+        logging.info("Got no Json. meter_data set to: %s" % (meter_data))
 
     return meter_data
 
@@ -157,7 +147,7 @@ class DbusGrowattShineXService:
   def _update(self):
     try:
       config = self._getConfig()
-      LocalPhase = [config['DEFAULT']['Phase']]
+      LocalPhase = config['DEFAULT']['Phase']
       allPhase = ['L1','L2','L3']
       nuPhase = list(set(allPhase) - set(LocalPhase))
       #get data from Shine X
@@ -168,26 +158,9 @@ class DbusGrowattShineXService:
         logging.info("Did not got valid Json.")
         return True
 
-      if meter_data['InverterStatus'] == 0:
-        return True
-
       self._dbusservice['/Connected'] = meter_data['InverterStatus']
-
-      if meter_data['{}ThreePhaseGridOutputPower'.format(nuPhase[0])] > 0:
+      if meter_data['InverterStatus'] == 0:
         PhaseList = ['L1','L2','L3']
-        for Phase in PhaseList:
-          dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
-          self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
-      else:
-        PhaseList = LocalPhase
-        self._dbusservice['/Ac/{}/Energy/Forward'.format(LocalPhase[0])] = meter_data['TotalGenerateEnergy']
-        for Phase in nuPhase:
-          self._dbusservice['/Ac/{}/Energy/Forward'.format(Phase)] = 0
-
-      if meter_data['TotalGenerateEnergy'] > 0:
-        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
-        self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
-
         for Phase in PhaseList:
           dbCur = '/Ac/{}/Current'.format(Phase)
           dbPow = '/Ac/{}/Power'.format(Phase)
@@ -196,19 +169,60 @@ class DbusGrowattShineXService:
           mPow = '{}ThreePhaseGridOutputPower'.format(Phase)
           mVol = '{}ThreePhaseGridVoltage'.format(Phase)
 
+          self._dbusservice[dbCur] = 0
+          self._dbusservice[dbPow] = 0
+          self._dbusservice[dbVol] = 0
+
+        self._dbusservice['/Ac/Power'] = 0
+        return True
+
+
+      if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0:
+        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/Power'] = 0
+        return True
+
+      if meter_data['L3ThreePhaseGridOutputPower'] > 0:
+        PhaseList = allPhase
+        for Phase in PhaseList:
+          dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
+          self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
+        if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5:
+            meter_data['OutputPower'] = 0
+      else:
+        PhaseList = [LocalPhase]
+        ef = '/Ac/{}/Energy/Forward'.format(LocalPhase)
+        self._dbusservice[ef] = meter_data['TotalGenerateEnergy']
+        if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5:
+            meter_data['OutputPower'] = 0
+
+      if meter_data['TotalGenerateEnergy'] > 0:
+        self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
+        self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
+
+        for Phase in PhaseList:
+          if len(PhaseList) == 1:
+            LPhase = 'L1'
+          else:
+            LPhase = Phase
+          dbCur = '/Ac/{}/Current'.format(Phase)
+          dbPow = '/Ac/{}/Power'.format(Phase)
+          dbVol = '/Ac/{}/Voltage'.format(Phase)
+
+          mCur = '{}ThreePhaseGridOutputCurrent'.format(LPhase)
+          mPow = '{}ThreePhaseGridOutputPower'.format(LPhase)
+          mVol = '{}ThreePhaseGridVoltage'.format(LPhase)
+
           if meter_data[mCur] == 0.5:
-            if meter_data['{}ThreePhaseGridOutputPower'.format(nuPhase[0])] > 0:
-              meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
-            else:
-              meter_data[mCur] = meter_data['OutputPower'] / meter_data[mVol]
+            meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
           self._dbusservice[dbCur] = meter_data[mCur]
           self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
           self._dbusservice[dbVol] = meter_data[mVol]
 
       #logging
-      logging.debug("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
-      logging.debug("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
-      logging.debug("---");
+      logging.info("House Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
+      logging.info("House Forward (/Ac/Energy/Forward): %s" % (self._dbusservice['/Ac/Energy/Forward']))
+      logging.info("---");
 
       self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
       self._lastUpdate = time.time()
@@ -219,27 +233,15 @@ class DbusGrowattShineXService:
     return True
 
   def _handlechangedvalue(self, path, value):
-    logging.debug("someone else updated %s to %s" % (path, value))
+    logging.info("someone else updated %s to %s" % (path, value))
     return True # accept the change
 
 
 
 def main():
   #configure logging
-  log_rotate_handler = logging.handlers.RotatingFileHandler(
-      maxBytes=5*1024*1024*10,
-      backupCount=2,
-      encoding=None,
-      delay=0,
-      filename="%s/current.log" % (os.path.dirname(os.path.realpath(__file__)))
-  )
-  logging.basicConfig(      format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
-      datefmt='%Y-%m-%d %H:%M:%S',
-      level=logging.INFO,
-      handlers=[
-      logging.StreamHandler(),
-      log_rotate_handler
-  ])
+  logging_level = "ERROR"
+  logging.basicConfig(format="%(levelname)s %(message)s",level=logging_level,)
   try:
       logging.info("Start");
       from dbus.mainloop.glib import DBusGMainLoop
