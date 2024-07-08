@@ -214,9 +214,11 @@ class DbusGrowattShineXService:
           mVol = '{}ThreePhaseGridVoltage'.format(LPhase)
 
           if meter_data[mCur] == 0.5:
-            meter_data[mCur] = (meter_data['OutputPower'] / 3)/meter_data[mVol]
+            meter_data[mCur] = (meter_data['OutputPower'] / len(PhaseList))/meter_data[mVol]
+            self._dbusservice[dbPow] = meter_data['TotalGenerateEnergy'] / len(PhaseList)
+          else:
+            self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
           self._dbusservice[dbCur] = meter_data[mCur]
-          self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
           self._dbusservice[dbVol] = meter_data[mVol]
 
       #logging
