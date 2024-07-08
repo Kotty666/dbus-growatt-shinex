@@ -187,13 +187,13 @@ class DbusGrowattShineXService:
         for Phase in PhaseList:
           dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
           self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
-        if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] == 0.5:
+        if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] <= 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] <= 0.5:
             meter_data['OutputPower'] = 0
       else:
         PhaseList = [LocalPhase]
         ef = '/Ac/{}/Energy/Forward'.format(LocalPhase)
         self._dbusservice[ef] = meter_data['TotalGenerateEnergy']
-        if meter_data['L1ThreePhaseGridOutputCurrent'] == 0.5:
+        if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5:
             meter_data['OutputPower'] = 0
 
       if meter_data['TotalGenerateEnergy'] > 0:
@@ -213,7 +213,7 @@ class DbusGrowattShineXService:
           mPow = '{}ThreePhaseGridOutputPower'.format(LPhase)
           mVol = '{}ThreePhaseGridVoltage'.format(LPhase)
 
-          if meter_data[mCur] == 0.5:
+          if meter_data[mCur] <= 0.5:
             meter_data[mCur] = (meter_data['OutputPower'] / len(PhaseList))/meter_data[mVol]
             self._dbusservice[dbPow] = meter_data['TotalGenerateEnergy'] / len(PhaseList)
           else:
