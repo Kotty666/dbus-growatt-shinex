@@ -197,8 +197,11 @@ class DbusGrowattShineXService:
         if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5:
             meter_data['OutputPower'] = 0
 
-      cosphi = round((((100/ ( meter_data['L1ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower'])) * meter_data['OutputPower'] ) / 100 ),2)
-      if meter_data['TotalGenerateEnergy'] > 0:
+      LAll = meter_data['L1ThreePhaseGridOutputPower'] + meter_data['L2ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower']
+      Pct1 = 100 / LAll
+      Pct2 = Pct1 * meter_data['OutputPower']
+      cosphi = Pct2 / 100
+      if meter_data['OutputPower'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
 
@@ -219,7 +222,7 @@ class DbusGrowattShineXService:
             meter_data[mCur] = (meter_data['OutputPower'] / len(PhaseList))/meter_data[mVol]
             self._dbusservice[dbPow] = meter_data['TotalGenerateEnergy'] / len(PhaseList)
           else:
-            self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol] * cosphi
+            self._dbusservice[dbPow] = meter_data[mPow] * cosphi
           self._dbusservice[dbCur] = meter_data[mCur]
           self._dbusservice[dbVol] = meter_data[mVol]
 
@@ -294,3 +297,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+# vim: tabstop=2 shiftwidth=2 softtabstop=2 expandtab:
