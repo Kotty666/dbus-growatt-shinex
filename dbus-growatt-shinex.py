@@ -151,6 +151,7 @@ class DbusGrowattShineXService:
       allPhase = ['L1','L2','L3']
       nuPhase = list(set(allPhase) - set(LocalPhase))
       #get data from Shine X
+      cosphi = 1
 
       #send data to DBus
       meter_data = self._getShineXData()
@@ -177,7 +178,7 @@ class DbusGrowattShineXService:
         return True
 
 
-      if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0:
+      if meter_data['PV1InputPower'] == 0 and meter_data['PV1InputPower'] == 0 and meter_data['PV2InputPower'] == 0 and meter_data['PV2InputPower'] == 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = 0
         return True
@@ -188,13 +189,15 @@ class DbusGrowattShineXService:
           dbsname = '/Ac/{}/Energy/Forward'.format(Phase)
           self._dbusservice[dbsname] = ( meter_data['TotalGenerateEnergy'] / 3 )
         if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] <= 0.5 and meter_data['L2ThreePhaseGridOutputCurrent'] <= 0.5:
-            meter_data['OutputPower'] = 0
+          meter_data['OutputPower'] = 0
       else:
         PhaseList = [LocalPhase]
         ef = '/Ac/{}/Energy/Forward'.format(LocalPhase)
         self._dbusservice[ef] = meter_data['TotalGenerateEnergy']
         if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5:
             meter_data['OutputPower'] = 0
+
+      cosphi = round((100/ meter_data['TotalGenerateEnergy'] ) * (meter_date['L1ThreePhaseGridOutputPower'] + meter_date['L3ThreePhaseGridOutputPower'] + meter_date['L3ThreePhaseGridOutputPower']),2)
 
       if meter_data['TotalGenerateEnergy'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
@@ -217,7 +220,7 @@ class DbusGrowattShineXService:
             meter_data[mCur] = (meter_data['OutputPower'] / len(PhaseList))/meter_data[mVol]
             self._dbusservice[dbPow] = meter_data['TotalGenerateEnergy'] / len(PhaseList)
           else:
-            self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol]
+            self._dbusservice[dbPow] = meter_data[mCur] * meter_data[mVol] * cosphi
           self._dbusservice[dbCur] = meter_data[mCur]
           self._dbusservice[dbVol] = meter_data[mVol]
 
