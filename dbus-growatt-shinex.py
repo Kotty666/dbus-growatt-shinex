@@ -197,8 +197,7 @@ class DbusGrowattShineXService:
         if meter_data['L1ThreePhaseGridOutputCurrent'] <= 0.5:
             meter_data['OutputPower'] = 0
 
-      cosphi = round((100/ meter_data['TotalGenerateEnergy'] ) * (meter_data['L1ThreePhaseGridOutputPower'] + meter_data['L2ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower']),2)
-
+      cosphi = round((((100/ ( meter_data['L1ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower'] + meter_data['L3ThreePhaseGridOutputPower'])) * meter_data['OutputPower'] ) / 100 ),2)
       if meter_data['TotalGenerateEnergy'] > 0:
         self._dbusservice['/Ac/Energy/Forward'] = meter_data['TotalGenerateEnergy']
         self._dbusservice['/Ac/Power'] = meter_data['OutputPower']
