@@ -40,7 +40,7 @@ class DbusGrowattShineXService:
 
     # Create the mandatory objects
     self._dbusservice.add_path('/DeviceInstance', deviceinstance)
-    self._dbusservice.add_path('/ProductId',0xA142) # id needs to be assigned by Victron Support current value for testing
+    self._dbusservice.add_path('/ProductId', 0xFFFF) # id needs to be assigned by Victron Support current value for testing
     self._dbusservice.add_path('/ProductName', productname)
     self._dbusservice.add_path('/CustomName', customname)
     self._dbusservice.add_path('/Latency', None)
