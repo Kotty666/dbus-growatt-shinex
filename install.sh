@@ -39,4 +39,8 @@ then
     echo >> $filename
 fi
 
+
+grep -qxF  || echo "exec multilog t s153600 n2 /var/log/$SERVICE_NAME"
+grep -qxF "exec multilog t s153600 n2 /var/log/$SERVICE_NAME" $SCRIPT_DIR/service/log/run || echo exec multilog t s153600 n2 /var/log/$SERVICE_NAME >> $SCRIPT_DIR/service/log/run
+
 grep -qxF "$SCRIPT_DIR/install.sh" $filename || echo "/bin/bash $SCRIPT_DIR/install.sh" >> $filename
