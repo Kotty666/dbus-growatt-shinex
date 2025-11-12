@@ -1,46 +1,69 @@
 #!/bin/bash
-SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-SERVICE_NAME=$(basename $SCRIPT_DIR)
+set -euo pipefail
 
-if [ ! -f $SCRIPT_DIR/config.ini ]; then
-    echo "config.ini file not found. Please make sure it exists. If not created yet, please copy it from config.example."
-    exit 1
+SCRIPT_DIR="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+SERVICE_NAME="$(basename "$SCRIPT_DIR")"
+
+# --- Vorbedingungen ---
+if [ ! -f "$SCRIPT_DIR/config.ini" ]; then
+  echo "config.ini file not found. Please make sure it exists. If not created yet, please copy it from config.example."
+  exit 1
 fi
 
-if [ -f $SCRIPT_DIR/current.log ]; then
-    rm $SCRIPT_DIR/current.log*
+# --- Logs aufräumen ---
+rm -f "$SCRIPT_DIR"/current.log*
+
+# --- Rechte setzen ---
+chmod 744 "$SCRIPT_DIR/install.sh"
+chmod 744 "$SCRIPT_DIR/restart.sh"
+chmod 744 "$SCRIPT_DIR/uninstall.sh"
+chmod 755 "$SCRIPT_DIR/service/run"
+chmod 755 "$SCRIPT_DIR/service/log/run"
+
+# --- Symlink setzen ---
+mkdir -p /service
+ln -sfn "$SCRIPT_DIR/service" "/service/$SERVICE_NAME"
+
+# --- rc.local vorbereiten ---
+filename="/data/rc.local"
+if [ ! -f "$filename" ]; then
+  printf '%s\n' '#!/bin/bash' > "$filename"
+  chmod 755 "$filename"
 fi
 
-# set permissions for script files
-chmod a+x $SCRIPT_DIR/install.sh
-chmod 744 $SCRIPT_DIR/install.sh
+# --- Helferfunktion: exakt eine Zeile sicherstellen + leere Zeilen entfernen ---
+ensure_single_line() {
+  local file="$1"
+  local line="$2"
+  local tmp
+  tmp="$(mktemp)"
 
-chmod a+x $SCRIPT_DIR/restart.sh
-chmod 744 $SCRIPT_DIR/restart.sh
+  awk -v l="$line" '
+    # Leerzeilen überspringen
+    NF == 0 { next }
+    # Zeile suchen und nur einmal behalten
+    $0 == l { if (++n == 1) print; next }
+    # Rest normal ausgeben
+    { print }
+    END {
+      if (n == 0) print l
+    }
+  ' "$file" > "$tmp"
 
-chmod a+x $SCRIPT_DIR/uninstall.sh
-chmod 744 $SCRIPT_DIR/uninstall.sh
+  # Rechte & Eigentümer übernehmen
+  chown --reference="$file" "$tmp" 2>/dev/null || true
+  chmod --reference="$file" "$tmp" 2>/dev/null || true
+  mv "$tmp" "$file"
+}
 
-chmod a+x $SCRIPT_DIR/service/run
-chmod 755 $SCRIPT_DIR/service/run
+# --- rc.local: Eintrag bereinigen und sichern ---
+ensure_single_line "$filename" "/bin/bash $SCRIPT_DIR/install.sh"
 
-chmod a+x $SCRIPT_DIR/service/log/run
-chmod 755 $SCRIPT_DIR/service/log/run
-
-# create sym-link to run script in deamon
-ln -s $SCRIPT_DIR/service /service/$SERVICE_NAME
-# add install-script to rc.local to be ready for firmware update
-filename=/data/rc.local
-if [ ! -f $filename ]
-then
-    touch $filename
-    chmod 755 $filename
-    echo "#!/bin/bash" >> $filename
-    echo >> $filename
+# --- service/log/run: multilog-Zeile bereinigen und sichern ---
+logrun="$SCRIPT_DIR/service/log/run"
+if [ ! -f "$logrun" ]; then
+  mkdir -p "$SCRIPT_DIR/service/log"
+  : > "$logrun"
+  chmod 755 "$logrun"
 fi
-
-
-grep -qxF  || echo "exec multilog t s153600 n2 /var/log/$SERVICE_NAME"
-grep -qxF "exec multilog t s153600 n2 /var/log/$SERVICE_NAME" $SCRIPT_DIR/service/log/run || echo exec multilog t s153600 n2 /var/log/$SERVICE_NAME >> $SCRIPT_DIR/service/log/run
-
-grep -qxF "$SCRIPT_DIR/install.sh" $filename || echo "/bin/bash $SCRIPT_DIR/install.sh" >> $filename
+ensure_single_line "$logrun" "exec multilog t s153600 n2 /var/log/$SERVICE_NAME"
