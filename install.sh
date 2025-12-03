@@ -53,7 +53,7 @@ ensure_single_line() {
 
   # Rechte & Eigentümer übernehmen
   chown $(stat -c "%U:%G" "$file") "$tmp" 2>/dev/null || true
-  chmod $(stat -c "%a" $file") "$tmp" 2>/dev/null || true
+  chmod $(stat -c "%a" "$file") "$tmp" 2>/dev/null || true
   mv "$tmp" "$file"
 }
 
