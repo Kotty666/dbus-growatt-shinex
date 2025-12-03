@@ -75,7 +75,6 @@ class DbusGrowattShineXService:
       serial = '00:00:00:00:00:00'
     return serial.replace(':','')
 
-
   def _getConfig(self):
     config = configparser.ConfigParser()
     config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
@@ -104,37 +103,50 @@ class DbusGrowattShineXService:
 
     return URL
 
+  def _restart_script(self):
+    logging.critical("Neustart des Skripts...")
+    try:
+        # DBus-Verbindung sauber beenden
+        if hasattr(self, '_dbusservice'):
+            del self._dbusservice
+    except Exception as e:
+        logging.error(f"Fehler beim Beenden von DBus: {e}")
+
+    # Skript neu starten (ersetzt den aktuellen Prozess)
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
 
   def _getShineXData(self):
     URL = self._getShineXStatusUrl()
-    headers={}
-    headers['Content-Type'] = 'application/json'
+    headers = {'Content-Type': 'application/json'}
+    max_retries = 3
+    retry_delay = 10  # Sekunden zwischen Versuchen
 
-    meter_data = {"InverterStatus":0}
+    for attempt in range(max_retries):
+        try:
+            meter_r = requests.get(url=URL, timeout=10, headers=headers)
+            if meter_r.status_code == 200:
+                if meter_r.headers.get('Content-Type').startswith('text/html'):
+                    REBOOT_URL = URL.replace('/status', '/restart')
+                    requests.get(url=REBOOT_URL, timeout=10)
+                    logging.info("Wechselrichter neugestartet – warte 30 Sekunden...")
+                    time.sleep(30)
+                    continue  # Versuche erneut
+                try:
+                    return meter_r.json()
+                except ValueError:
+                    logging.error(f"Ungültige JSON-Antwort (Versuch {attempt + 1}/{max_retries})")
+            else:
+                logging.error(f"HTTP-Fehler {meter_r.status_code} (Versuch {attempt + 1}/{max_retries})")
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Verbindungsfehler: {e} (Versuch {attempt + 1}/{max_retries})")
 
-    try:
-      meter_r = requests.get(url = URL, timeout=10,headers=headers)
-      if ( meter_r.status_code == 200 and meter_r.headers.get('Content-Type').startswith('text/html')):
-        REBOOT_URL = URL.replace('/status','/restart')
-        resp = requests.get(url = REBOOT_URL, timeout = 10)
-        logging.info("Reboot triggered")
-    except requests.exceptions.Timeout:
-      logging.info("RequestTimeout")
-    except requests.exceptions.TooManyRedirects:
-      print("Too Many Redirects")
-    except requests.exceptions.RequestException as e:
-      logging.info("No response from Shine X - %s" % (URL))
-      print(e)
-    except:
-      logging.info("No response from Shine X - %s" % (URL))
+        time.sleep(retry_delay)
 
-    try:
-      meter_data = meter_r.json()
-    except:
-        logging.info("Got no Json. meter_data set to: %s" % (meter_data))
-
-    return meter_data
-
+    # Nach 3 Fehlversuchen: Skript neu starten
+    logging.critical("3 fehlgeschlagene Versuche – starte Skript neu...")
+    self._restart_script()
+    return False  # Falls _restart_script() nicht funktioniert (Fallback)
 
   def _signOfLife(self):
     logging.info("--- Start: sign of life ---")
@@ -146,6 +158,10 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
+      if hasattr(self, '_lastUpdate') and (time.time() - self._lastUpdate) > 300:  # 5 Minuten
+        logging.critical("Skript hängt – erzwinge Neustart!")
+        self._restart_script()
+
       config = self._getConfig()
       LocalPhase = config['DEFAULT']['Phase']
       allPhase = ['L1','L2','L3']
@@ -244,7 +260,6 @@ class DbusGrowattShineXService:
     return True # accept the change
 
 
-
 def main():
   #configure logging
   logging_level = "ERROR"
@@ -298,3 +313,4 @@ def main():
 if __name__ == "__main__":
   main()
 # vim: tabstop=2 shiftwidth=2 softtabstop=2 expandtab:
+
