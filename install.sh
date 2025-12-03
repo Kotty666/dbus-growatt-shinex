@@ -14,11 +14,12 @@ fi
 rm -f "$SCRIPT_DIR"/current.log*
 
 # --- Rechte setzen ---
-chmod 744 "$SCRIPT_DIR/install.sh"
-chmod 744 "$SCRIPT_DIR/restart.sh"
-chmod 744 "$SCRIPT_DIR/uninstall.sh"
-chmod 755 "$SCRIPT_DIR/service/run"
-chmod 755 "$SCRIPT_DIR/service/log/run"
+chmod 0755 "$SCRIPT_DIR/install.sh"
+chmod 0755 "$SCRIPT_DIR/restart.sh"
+chmod 0755 "$SCRIPT_DIR/uninstall.sh"
+chmod 0755 "$SCRIPT_DIR/service/run"
+chmod 0755 "$SCRIPT_DIR/service/log/run"
+chmod 0755 "$SCRIPT_DIR/dbus-growatt-shinex.py"
 
 # --- Symlink setzen ---
 mkdir -p /service
@@ -28,7 +29,7 @@ ln -sfn "$SCRIPT_DIR/service" "/service/$SERVICE_NAME"
 filename="/data/rc.local"
 if [ ! -f "$filename" ]; then
   printf '%s\n' '#!/bin/bash' > "$filename"
-  chmod 755 "$filename"
+  chmod 0755 "$filename"
 fi
 
 # --- Helferfunktion: exakt eine Zeile sicherstellen + leere Zeilen entfernen ---
@@ -58,6 +59,10 @@ ensure_single_line() {
 
 # --- rc.local: Eintrag bereinigen und sichern ---
 ensure_single_line "$filename" "/bin/bash $SCRIPT_DIR/install.sh"
+
+if [ $(stat -c "%a" "$filename") -ne 755 ]; then
+  chmod 0755 $filename
+fi
 
 # --- service/log/run: multilog-Zeile bereinigen und sichern ---
 logrun="$SCRIPT_DIR/service/log/run"
