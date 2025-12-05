@@ -75,6 +75,7 @@ class DbusGrowattShineXService:
       serial = '00:00:00:00:00:00'
     return serial.replace(':','')
 
+
   def _getConfig(self):
     config = configparser.ConfigParser()
     config.read("%s/config.ini" % (os.path.dirname(os.path.realpath(__file__))))
@@ -158,10 +159,10 @@ class DbusGrowattShineXService:
 
   def _update(self):
     try:
-      if hasattr(self, '_lastUpdate') and (time.time() - self._lastUpdate) > 300:  # 5 Minuten
-        logging.critical("Skript hängt – erzwinge Neustart!")
-        self._restart_script()
-
+      # WICHTIG: Timestamp IMMER als erstes aktualisieren, 
+      # damit der Hang-Check nicht fälschlicherweise triggert
+      self._lastUpdate = time.time()
+      
       config = self._getConfig()
       LocalPhase = config['DEFAULT']['Phase']
       allPhase = ['L1','L2','L3']
@@ -248,7 +249,7 @@ class DbusGrowattShineXService:
       logging.info("---");
 
       self._dbusservice['/UpdateIndex'] = (self._dbusservice['/UpdateIndex'] + 1 ) % 256
-      self._lastUpdate = time.time()
+      
     except Exception as e:
       logging.critical('Error at %s', '_update', exc_info=e)
 
@@ -258,6 +259,7 @@ class DbusGrowattShineXService:
   def _handlechangedvalue(self, path, value):
     logging.info("someone else updated %s to %s" % (path, value))
     return True # accept the change
+
 
 
 def main():
@@ -313,4 +315,3 @@ def main():
 if __name__ == "__main__":
   main()
 # vim: tabstop=2 shiftwidth=2 softtabstop=2 expandtab:
-
